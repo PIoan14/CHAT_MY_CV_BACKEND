@@ -7,6 +7,8 @@ from models import User
 from fastapi import HTTPException, status
 from hasher import hash_password
 import json 
+from chat_llm import getRAGanswer, get_prompt
+
 
 app = FastAPI()
 cred = credentials.Certificate("database_referance.json")
@@ -14,23 +16,15 @@ firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
-def get_all_user_details(colection):
 
+def get_user_details_by_id(doc_id):
     try:
-        details = []
-        docs = db.collection(colection).stream()
-
-        print(f"--- Parole găsite în '{colection}' ---")
-        
-        for doc in docs:
-            data = doc.to_dict()
-
-            details.append(data)
-
-        return details
+        doc_ref = db.collection("users").document(doc_id)
+        doc = doc_ref.get()
+        return doc.to_dict()
     except:
-        print("Firebase is not available")
-        return False
+        print("No such user found")
+    pass
 
 
 
@@ -49,6 +43,24 @@ def get_user_details(colection, username):
         return False
 
     return False
+
+def get_all_user_details(colection):
+
+    try:
+        details = []
+        docs = db.collection(colection).stream()
+        
+        for doc in docs:
+            data = doc.to_dict()
+
+            details.append(data)
+
+        return details
+    except:
+        print("Firebase is not available")
+        return False
+
+
         
 
 @app.post("/loginUser")
@@ -62,10 +74,9 @@ def server_login(user : User):
 
     passwords_check = [y["password"] for y in all_details]
 
-    print(user_details)
 
     if user_details and hashed_password in passwords_check:
-       
+
         return user_details
     else :
     
@@ -82,7 +93,6 @@ def server_register(user : User):
     
     details = get_all_user_details("users")
 
-    print(details)
     registered_username = [x["username"] for x in details]
     
 
@@ -91,13 +101,14 @@ def server_register(user : User):
     if hashed_password not in passwords_check and user.username not in registered_username:
         user.password = hashed_password
         db.collection("users").add(user.model_dump())
+        
         #Add to DB
         return {
             "Username" : user.username,
             "password" : hashed_password
         }
     else :
-        print(passwords_check)
+      
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password Exists"
@@ -113,12 +124,32 @@ def server_user_update(doc_id, element, value):
         
         if not doc_ref.get().exists:
             return {"status": 404, "message": "No such document in firebase"}
+        
 
+        if element == "password":
+            value = hash_password(value)
         doc_ref.update({
             element : value
         })
         
         return {"status": 200, "message": "Document was updated in firebase"}
+        
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+    
+
+@app.post("/chatCompletions")
+def chat_with_CV(doc_id, question):
+    
+    try:
+        doc_ref = get_user_details_by_id(doc_id=doc_id)
+        pdf_cv_content = doc_ref["CV_content"]
+        summary = doc_ref["text_summary"]
+
+        prompt = get_prompt(question, doc_ref["username"], pdf_cv_content,summary)
+        answer = getRAGanswer(prompt=prompt)
+        
+        return {"status": 200, "message": answer}
         
     except Exception as e:
         return {"status": 500, "message": str(e)}
