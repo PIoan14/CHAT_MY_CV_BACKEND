@@ -147,8 +147,8 @@ def chat_with_CV(doc_id, question):
         summary = doc_ref["text_summary"]
 
         prompt = get_prompt(question, doc_ref["username"], pdf_cv_content,summary)
-        answer = getRAGanswer(prompt=prompt)
-        
+        answer = getRAGanswer(prompt=prompt, username= doc_ref["username"])
+        print(answer)
         return {"status": 200, "message": answer}
         
     except Exception as e:
