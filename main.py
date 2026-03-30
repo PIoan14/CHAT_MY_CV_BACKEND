@@ -8,8 +8,10 @@ from fastapi import HTTPException, status
 from hasher import hash_password
 import json
 from chat_llm import getRAGanswer, get_prompt
-from RAG_prep import dump_RAG_DB, load_RAG_DB, call_RAG_DB
-
+from RAG_prep import dump_RAG_DB, load_RAG_DB
+from fastapi.responses import StreamingResponse
+import uvicorn
+import os
 
 app = FastAPI()
 cred = credentials.Certificate("database_referance.json")
@@ -164,13 +166,31 @@ def chat_with_CV(doc_id, question):
         summary = doc_ref["text_summary"]
 
         if pdf_cv_content.strip() == "" or summary.strip() == "":
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PDF CV or Summary text were not uploaded")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="PDF CV or Summary text were not uploaded"
+            )
 
         rag_db = load_RAG_DB(doc_id)
         prompt = get_prompt(rag_db, question, doc_ref["username"])
-        answer = getRAGanswer(prompt=prompt, username=doc_ref["username"])
-        print(answer)
-        return {"status": 200, "message": answer}
+        # answer = getRAGanswer(prompt=prompt, username=doc_ref["username"])
+        # print(answer)
+
+        # def stream():
+        #     for chunk in getRAGanswer(prompt=prompt, username=doc_ref["username"]):
+        #         yield chunk
+
+        def stream():
+            for chunk in getRAGanswer(prompt=prompt, username=doc_ref["username"]):
+                yield chunk
+
+        return StreamingResponse(stream(), media_type="text/plain")
+
+        # return getRAGanswer(prompt=prompt, username=doc_ref["username"])
+        # return {"status": 200, "message": answer}
 
     except Exception as e:
         return {"status": 500, "message": str(e)}
+    
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
