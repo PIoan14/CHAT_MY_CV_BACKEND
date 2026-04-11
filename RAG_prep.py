@@ -9,11 +9,9 @@ import json
 from datasets.search import FaissIndex
 from datasets import load_from_disk
 
-
+model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
 
 def dump_RAG_DB(user_col_id, data_list):
-
-    model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
 
     print(f"Dumping index for {user_col_id}")
     data = pd.DataFrame(data_list, columns=["chunks"])
@@ -33,7 +31,6 @@ def dump_RAG_DB(user_col_id, data_list):
 
     
 def load_RAG_DB(user_col_id):
-    
 
     loaded_dataset = load_from_disk(f"Knowledge_index_rows/{user_col_id}")
 
@@ -45,12 +42,10 @@ def load_RAG_DB(user_col_id):
 
 def call_RAG_DB(loaded_dataset, question):
 
-    model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
-
     rag_knowledge = ""
     query_embedding = model.encode([question], normalize_embeddings=True)
     
-    scores, examples = loaded_dataset.get_nearest_examples("embeddings", query_embedding[0], k=10)
+    scores, examples = loaded_dataset.get_nearest_examples("embeddings", query_embedding[0], k=40)
 
     most_relevant_chunks = [x for x in examples["chunks"] if len(x.split()) > 3]
 

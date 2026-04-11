@@ -5,6 +5,7 @@ from config import get_config
 import requests
 import json
 from RAG_prep import call_RAG_DB
+import time
 
 load_dotenv()
 
@@ -63,4 +64,7 @@ def getRAGanswer(prompt,username):
             }
         ],
     )
-    return completion.choices[0].message.content
+    final_response= completion.choices[0].message.content
+    for word in final_response.split():
+        yield word + " "
+        time.sleep(0.05)
