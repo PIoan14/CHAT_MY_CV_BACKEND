@@ -13,12 +13,18 @@ config = get_config()
 
 client = OpenAI(
     base_url="https://router.huggingface.co/v1",
-    api_key= os.getenv("OPENAI_API_KEY"),
+    api_key=os.getenv("OPENAI_API_KEY"),
 )
-def get_prompt(rag_db, question, user_name):
-    
-    knowledge = call_RAG_DB(rag_db, question)
-    print(knowledge)
+
+
+def get_prompt(question, user_name, rag_db=False, full_user_skills=None):
+
+    if rag_db:
+        knowledge = call_RAG_DB(rag_db, question)
+
+    else:
+        knowledge = full_user_skills
+
     prompt = f"""
 
         Your job is to help answer questions about {user_name}s skillset using ONLY the provided information.
@@ -47,24 +53,22 @@ def get_prompt(rag_db, question, user_name):
 
     return prompt
 
-def getRAGanswer(prompt,username):
 
+def getLLManswer(prompt, username):
+   
     completion = client.chat.completions.create(
-        model = config["model"]["name"],
-        #model = "Qwen/Qwen3-Coder-Next:novita",
-        #model="meta-llama/Llama-3.3-70B-Instruct:groq",
+        model=config["model"]["name"],
+        # model = "Qwen/Qwen3-Coder-Next:novita",
+        # model="meta-llama/Llama-3.3-70B-Instruct:groq",
         messages=[
             {
                 "role": "system",
-                "content": f"You are the personal assistant of {username}. You know nothing else except about {username}."
+                "content": f"You are the personal assistant of {username}. You know nothing else except about {username}.",
             },
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "user", "content": prompt},
         ],
     )
-    final_response= completion.choices[0].message.content
+    final_response = completion.choices[0].message.content
     for word in final_response.split():
         yield word + " "
         time.sleep(0.05)

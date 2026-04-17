@@ -6,8 +6,8 @@ from firebase_admin import credentials, firestore
 from models import User
 from fastapi import HTTPException, status
 from hasher import hash_password
-import json
-from chat_llm import getRAGanswer, get_prompt
+from files_management import delete_file, delete_folder
+from chat_llm import getLLManswer, get_prompt
 from RAG_prep import dump_RAG_DB, load_RAG_DB
 from fastapi.responses import StreamingResponse
 import uvicorn
@@ -19,6 +19,16 @@ firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
+def add_Question_to_used(question, user_id):
+    try:
+
+        user_ref = db.collection("users").document(user_id)
+        user_ref.update({
+            "questions": firestore.ArrayUnion([question])
+        })
+        print(f"Succes: '{question}' was added")
+    except Exception as e:
+        print(f"Eroare: {e}")
 
 def split_long_strings(strings, max_words=20):
     new_list = []
@@ -154,34 +164,53 @@ def server_user_update(doc_id, element, value):
 
     except Exception as e:
         return {"status": 500, "message": str(e)}
+    
+
+@app.post("/deleteUser")
+def delete_document(document_id):
+    try:
+        doc_ref = db.collection("users").document(document_id)
+        
+        doc_ref.delete()
+
+        delete_file(f"./Knowledge_faiss_index/{document_id}")
+        delete_folder(f"./Knowledge_index_rows/{document_id}")
+        
+        print(f"Document {document_id} deleted from {"users"}.")
+
+    except Exception as e:
+        print(f"A apărut o eroare la ștergere: {e}")
 
 
 @app.post("/chatCompletions")
-def chat_with_CV(doc_id, question):
+def chat_with_CV(doc_id, question, RAG=False):
 
+    print(question)
+    print(RAG)
     try:
         doc_ref = get_user_details_by_id(doc_id=doc_id)
 
         pdf_cv_content = doc_ref["CV_content"]
         summary = doc_ref["text_summary"]
-
+        full_skills = pdf_cv_content+"/n/n"+ summary
         if pdf_cv_content.strip() == "" or summary.strip() == "":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="PDF CV or Summary text were not uploaded"
             )
+        
+        if RAG == "True":
 
-        rag_db = load_RAG_DB(doc_id)
-        prompt = get_prompt(rag_db, question, doc_ref["username"])
-        # answer = getRAGanswer(prompt=prompt, username=doc_ref["username"])
-        # print(answer)
-
-        # def stream():
-        #     for chunk in getRAGanswer(prompt=prompt, username=doc_ref["username"]):
-        #         yield chunk
+            rag_db = load_RAG_DB(doc_id)
+            prompt = get_prompt(question, doc_ref["username"], rag_db)
+        else:
+            
+            prompt = get_prompt(question, doc_ref["username"], False ,full_skills)        
 
         def stream():
-            for chunk in getRAGanswer(prompt=prompt, username=doc_ref["username"]):
+            for chunk in getLLManswer(prompt=prompt, username=doc_ref["username"]):
                 yield chunk
+
+        add_Question_to_used(question=question, user_id= doc_id)
 
         return StreamingResponse(stream(), media_type="text/plain")
 
