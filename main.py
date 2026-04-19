@@ -12,10 +12,25 @@ from RAG_prep import dump_RAG_DB, load_RAG_DB
 from fastapi.responses import StreamingResponse
 import uvicorn
 import os
+import json
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
-cred = credentials.Certificate("database_referance.json")
-firebase_admin.initialize_app(cred)
+
+firebase_creds_json = os.getenv("FIREBASE_CRED")
+
+if firebase_creds_json:
+    # 2. Convertește string-ul în dicționar Python
+    cred_dict = json.loads(firebase_creds_json)
+    
+    # 3. Inițializează Firebase folosind dicționarul, nu calea fișierului
+    cred = credentials.Certificate(cred_dict)
+    firebase_admin.initialize_app(cred)
+else:
+    print("EROARE")
+#cred = credentials.Certificate("database_referance.json")
+#firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
