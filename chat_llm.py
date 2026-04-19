@@ -2,8 +2,6 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from config import get_config
-import requests
-import json
 from RAG_prep import call_RAG_DB
 import time
 

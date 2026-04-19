@@ -10,6 +10,6 @@ class User(BaseModel):
     questions : List[str] = []
 
 class Analysis(BaseModel):
-    summary: str = Field(description="Rezumatul textului")
-    dictionary: str = Field(description="Un string ce conține un JSON valid (ex: '{\"key\": \"value\"}')")
+    summary: str = Field(description="Text Result")
+    dictionary: str = Field(description="json string")
 
