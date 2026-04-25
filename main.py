@@ -234,7 +234,7 @@ def chat_with_CV(doc_id, question, RAG=False):
         return {"status": 500, "message": str(e)}
     
 @app.post("/chatAnalytics")
-def chat_with_CV(doc_id):
+def chat_Analytics(doc_id):
     user = get_user_details_by_id(doc_id)
     return get_structured_questions_summary(user_dict=user)
 
