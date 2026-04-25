@@ -27,7 +27,7 @@ and data-driven insights based on the specific questions asked about your profil
         messages = [
             {
                 "role": "system", 
-                "content": """Those questions were asked about the current user's skills from CV. 
+                "content":f"""You have a total number of {len(user_dict["questions"])}Those questions were asked about the current user's skills from CV. 
                 You must devide them into 4-5 main cathegories, and provide a json with each cathegory
                 and the count of the questions inside. The cathegories must be
                 as specific as possible, NEVER use too generic cathegories. One of the keys MUST be called "off topic", even if there are no off topic Questions.
