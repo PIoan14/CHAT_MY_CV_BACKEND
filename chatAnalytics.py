@@ -27,14 +27,17 @@ and data-driven insights based on the specific questions asked about your profil
         messages = [
             {
                 "role": "system", 
-                "content":f"""You have a total number of {len(user_dict["questions"])}Those questions were asked about the current user's skills from CV. 
+                "content":f"""You have a total number of {len(user_dict["questions"])} QUESTIONS. 
+
+                Those questions were asked about the current user's skills from CV. 
                 You must devide them into 4-5 main cathegories, and provide a json with each cathegory
                 and the count of the questions inside. The cathegories must be
                 as specific as possible, NEVER use too generic cathegories. One of the keys MUST be called "off topic", even if there are no off topic Questions.
                 As a las key I would like a direct summary of what the user should 
                 focus on based on the questions provided and be as detailed as possible. IMPORTANT: the summary is addressed to the user
                 Please use json for answer at the second person as you. YOU MUST INCLUDE ALL THE QUESTIONS IN ONE OF THE TOPICS
-                NEVER OMIT ANY QUESTION"""
+                NEVER OMIT ANY QUESTION. EACH QUESTION MUST BE IN A CATHEGORY. IMPORTANT: Off topic means questions NOT related to techinchal hirng knowledge.
+                AT THE END YOU MUS HAVE {len(user_dict["questions"])} placed in more cathegories"""
             },
             {
                 "role": "user", 
@@ -49,6 +52,7 @@ and data-driven insights based on the specific questions asked about your profil
     )
 
     structured_data = response.choices[0].message.content
-    print(structured_data)
+    #print(structured_data)
+
     return structured_data
 
